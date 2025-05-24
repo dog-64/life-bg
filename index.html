@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conway's Game of Life</title>
+    <title>Life.Duletsky.Ru</title>
     <style>
         * {
             margin: 0;
@@ -110,18 +110,18 @@
                 
                 // Размещаем паттерны случайно по всей площади
                 const gridArea = this.cols * this.rows;
-                const numPatterns = Math.floor(gridArea / 800); // Примерно один паттерн на 800 клеток
+                const numPatterns = Math.floor(gridArea / 500); // Примерно один паттерн на 500 клеток
                 
                 for (let i = 0; i < numPatterns; i++) {
                     const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-                    const x = Math.floor(Math.random() * (this.cols - 20)); // Отступ от края
+                    const x = Math.floor(Math.random() * (this.cols - 40)); // Отступ от края
                     const y = Math.floor(Math.random() * (this.rows - 20));
                     
                     this.placePattern(pattern.cells, x, y);
                 }
                 
                 // Добавляем случайный "шум" для разнообразия
-                this.addRandomNoise(0.02); // 2% случайных клеток
+                this.addRandomNoise(0.03); // 3% случайных клеток
             }
             
             // Размещение паттерна в сетке
@@ -329,6 +329,82 @@
                 
                 this.grid = newGrid;
                 this.generation++;
+                
+                // Каждые 10 тактов запускаем глайдер из пустого места
+                if (this.generation % 10 === 0) {
+                    this.launchRandomGlider();
+                }
+            }
+            
+            // Запуск глайдера из случайного пустого места в случайном направлении
+            launchRandomGlider() {
+                // Ищем пустые области (где нет живых клеток в радиусе 10 клеток)
+                const emptySpots = [];
+                const checkRadius = 10;
+                
+                for (let y = checkRadius; y < this.rows - checkRadius; y += 5) {
+                    for (let x = checkRadius; x < this.cols - checkRadius; x += 5) {
+                        let isEmpty = true;
+                        
+                        // Проверяем область вокруг точки
+                        for (let dy = -checkRadius; dy <= checkRadius && isEmpty; dy++) {
+                            for (let dx = -checkRadius; dx <= checkRadius && isEmpty; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+                                    if (this.grid[ny][nx]) {
+                                        isEmpty = false;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (isEmpty) {
+                            emptySpots.push({x, y});
+                        }
+                    }
+                }
+                
+                // Если есть пустые места, запускаем глайдер
+                if (emptySpots.length > 0) {
+                    const spot = emptySpots[Math.floor(Math.random() * emptySpots.length)];
+                    const direction = Math.floor(Math.random() * 4); // 0-3 для четырех направлений
+                    const glider = this.getGliderInDirection(direction);
+                    
+                    this.placePattern(glider, spot.x, spot.y);
+                }
+            }
+            
+            // Получение глайдера в нужном направлении
+            getGliderInDirection(direction) {
+                switch (direction) {
+                    case 0: // Вправо-вниз (классический)
+                        return [
+                            {x: 0, y: 1},
+                            {x: 1, y: 2},
+                            {x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}
+                        ];
+                    case 1: // Влево-вниз
+                        return [
+                            {x: 2, y: 1},
+                            {x: 1, y: 2},
+                            {x: 0, y: 0}, {x: 0, y: 1}, {x: 0, y: 2}
+                        ];
+                    case 2: // Вправо-вверх
+                        return [
+                            {x: 0, y: 1},
+                            {x: 1, y: 0},
+                            {x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}
+                        ];
+                    case 3: // Влево-вверх
+                        return [
+                            {x: 2, y: 1},
+                            {x: 1, y: 0},
+                            {x: 0, y: 0}, {x: 0, y: 1}, {x: 0, y: 2}
+                        ];
+                    default:
+                        return this.getGlider(); // Возврат к классическому
+                }
             }
             
             render() {
