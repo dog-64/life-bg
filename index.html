@@ -334,6 +334,12 @@
                 if (this.generation % 10 === 0) {
                     this.launchRandomGlider();
                 }
+                
+                // Каждые 50 тактов создаем случайную фигуру из засева
+                if (this.generation % 50 === 0) {
+                    console.log(`🎯 Поколение ${this.generation} - время создания фигуры!`);
+                    this.spawnRandomPattern();
+                }
             }
             
             // Запуск глайдера из случайного пустого места в случайном направлении
@@ -510,6 +516,98 @@
                     this.initializeGrid();
                     this.render();
                 });
+            }
+            
+            // Запуск случайной фигуры из засева в пустом месте
+            spawnRandomPattern() {
+                console.log(`Поколение ${this.generation}: Попытка создать фигуру...`);
+                
+                // Все доступные паттерны из засева
+                const patterns = [
+                    { name: 'pentadecathlon', cells: this.getPentadecathlon(), size: 12 },
+                    { name: 'pulsar', cells: this.getPulsar(), size: 15 },
+                    { name: 'hwss', cells: this.getHWSS(), size: 8 },
+                    { name: 'queenBeeShuttle', cells: this.getQueenBeeShuttle(), size: 25 },
+                    { name: 'gosperGliderGun', cells: this.getGosperGliderGun(), size: 40 },
+                    { name: 'beacon', cells: this.getBeacon(), size: 6 },
+                    { name: 'toad', cells: this.getToad(), size: 6 }
+                ];
+                
+                // Ищем пустые области для размещения (уменьшаем радиус)
+                let emptySpots = this.findEmptySpots(15); // Уменьшаем с 20 до 15
+                console.log(`Найдено пустых мест с радиусом 15: ${emptySpots.length}`);
+                
+                // Если мало мест, попробуем с меньшим радиусом
+                if (emptySpots.length < 3) {
+                    emptySpots = this.findEmptySpots(10);
+                    console.log(`Найдено пустых мест с радиусом 10: ${emptySpots.length}`);
+                }
+                
+                // Если всё ещё мало, попробуем с минимальным радиусом
+                if (emptySpots.length < 3) {
+                    emptySpots = this.findEmptySpots(5);
+                    console.log(`Найдено пустых мест с радиусом 5: ${emptySpots.length}`);
+                }
+                
+                if (emptySpots.length > 0) {
+                    // Выбираем случайную фигуру
+                    const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+                    
+                    // Выбираем случайное место
+                    const spot = emptySpots[Math.floor(Math.random() * emptySpots.length)];
+                    
+                    // Размещаем фигуру
+                    this.placePattern(randomPattern.cells, spot.x, spot.y);
+                    
+                    console.log(`✅ СОЗДАНА фигура ${randomPattern.name} в поколении ${this.generation} на (${spot.x}, ${spot.y})`);
+                } else {
+                    console.log(`❌ Не найдено подходящих пустых мест, создаю малую фигуру принудительно...`);
+                    
+                    // Принудительно создаем малую фигуру в случайном месте
+                    const smallPatterns = [
+                        { name: 'glider', cells: this.getGlider() },
+                        { name: 'beacon', cells: this.getBeacon() },
+                        { name: 'toad', cells: this.getToad() }
+                    ];
+                    
+                    const randomSmallPattern = smallPatterns[Math.floor(Math.random() * smallPatterns.length)];
+                    const x = Math.floor(Math.random() * (this.cols - 10)) + 5;
+                    const y = Math.floor(Math.random() * (this.rows - 10)) + 5;
+                    
+                    this.placePattern(randomSmallPattern.cells, x, y);
+                    console.log(`✅ ПРИНУДИТЕЛЬНО создана малая фигура ${randomSmallPattern.name} на (${x}, ${y})`);
+                }
+            }
+            
+            // Поиск пустых мест для размещения фигур
+            findEmptySpots(checkRadius) {
+                const emptySpots = [];
+                const stepSize = Math.floor(checkRadius / 2); // Шаг поиска
+                
+                for (let y = checkRadius; y < this.rows - checkRadius; y += stepSize) {
+                    for (let x = checkRadius; x < this.cols - checkRadius; x += stepSize) {
+                        let isEmpty = true;
+                        
+                        // Проверяем область вокруг точки
+                        for (let dy = -checkRadius; dy <= checkRadius && isEmpty; dy++) {
+                            for (let dx = -checkRadius; dx <= checkRadius && isEmpty; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+                                    if (this.grid[ny][nx]) {
+                                        isEmpty = false;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (isEmpty) {
+                            emptySpots.push({x, y});
+                        }
+                    }
+                }
+                
+                return emptySpots;
             }
         }
         
