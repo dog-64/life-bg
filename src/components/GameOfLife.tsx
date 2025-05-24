@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RefreshCw, Settings } from 'lucide-react';
 
 const CELL_SIZE = 12;
 const CELL_GAP = 1;
@@ -19,7 +18,6 @@ export default function GameOfLife() {
   const [generation, setGeneration] = useState(0);
   const [speed, setSpeed] = useState(10);
   const [gridSize, setGridSize] = useState({ rows: 0, cols: 0 });
-  const [showSettings, setShowSettings] = useState(false);
   
   const gridRef = useRef<Cell[][]>([]);
   const animationFrameRef = useRef<number>(0);
@@ -84,7 +82,7 @@ export default function GameOfLife() {
     
     // Ensure immediate render after initialization
     renderGrid();
-  }, []);
+  }, [renderGrid]);
 
   // Count live neighbors for a cell
   const countNeighbors = (grid: Cell[][], x: number, y: number) => {
@@ -106,6 +104,66 @@ export default function GameOfLife() {
     
     return count;
   };
+
+  // Render the grid to the canvas
+  const renderGrid = useCallback(() => {
+    if (!canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const { rows, cols } = gridSize;
+    const grid = gridRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Clear the canvas with the correct scaling
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = DEAD_COLOR;
+    ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    
+    // Draw cells with alpha for smooth transitions
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const cell = grid[y][x];
+        
+        if (cell.alpha > 0) {
+          // Используем rgba для плавных переходов
+          ctx.fillStyle = `rgba(34, 197, 94, ${cell.alpha})`;
+          ctx.fillRect(
+            x * (CELL_SIZE + CELL_GAP),
+            y * (CELL_SIZE + CELL_GAP),
+            CELL_SIZE,
+            CELL_SIZE
+          );
+        }
+      }
+    }
+    
+    // Draw centered text with black outline and white fill
+    const centerX = (canvas.width / dpr) / 2;
+    const centerY = (canvas.height / dpr) / 2;
+    
+    console.log('Rendering text at:', centerX, centerY); // Debug
+    
+    // Максимальная видимость для тестирования
+    ctx.globalAlpha = 0.;
+    
+    // Черная обводка для контраста с клетками
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 10;
+    ctx.font = 'bold 80px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeText('R300.39-Pc.Ru', centerX, centerY);
+    
+    // Красный текст для максимальной видимости (тестирование)
+    ctx.fillStyle = 'white';
+    ctx.fillText('R300.39-Pc.Ru', centerX, centerY);
+    
+    ctx.restore();
+  }, [gridSize]);
 
   // Update the grid based on Conway's Game of Life rules
   const updateGrid = useCallback(() => {
@@ -153,47 +211,7 @@ export default function GameOfLife() {
       setGeneration(prev => prev + 1);
     }
     
-    renderGrid();
     return hasChanges;
-  }, [gridSize, renderGrid]);
-
-  // Render the grid to the canvas
-  const renderGrid = useCallback(() => {
-    if (!canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const { rows, cols } = gridSize;
-    const grid = gridRef.current;
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Clear the canvas with the correct scaling
-    ctx.save();
-    ctx.scale(dpr, dpr);
-    ctx.fillStyle = DEAD_COLOR;
-    ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-    
-    // Draw cells with alpha for smooth transitions
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const cell = grid[y][x];
-        
-        if (cell.alpha > 0) {
-          // Используем rgba для плавных переходов
-          ctx.fillStyle = `rgba(34, 197, 94, ${cell.alpha})`;
-          ctx.fillRect(
-            x * (CELL_SIZE + CELL_GAP),
-            y * (CELL_SIZE + CELL_GAP),
-            CELL_SIZE,
-            CELL_SIZE
-          );
-        }
-      }
-    }
-    
-    ctx.restore();
   }, [gridSize]);
 
   // Animation loop
@@ -206,13 +224,14 @@ export default function GameOfLife() {
     
     if (elapsed > 1000 / speed) {
       updateGrid();
+      renderGrid();
       lastUpdateTimeRef.current = timestamp;
     }
     
     if (isRunning) {
       animationFrameRef.current = requestAnimationFrame(animate);
     }
-  }, [isRunning, speed, updateGrid]);
+  }, [isRunning, speed, updateGrid, renderGrid]);
 
   // Handle window resize
   useEffect(() => {
@@ -249,20 +268,36 @@ export default function GameOfLife() {
   useEffect(() => {
     initializeGrid();
     setIsRunning(true); // Auto-start the game
-  }, [initializeGrid]);
+    // Принудительный рендер для отображения текста
+    setTimeout(() => {
+      renderGrid();
+    }, 100);
+  }, [initializeGrid, renderGrid]);
 
-  const toggleRunning = () => {
-    setIsRunning(!isRunning);
-  };
+  // Add keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // F5 or Ctrl+R for reset
+      if (event.key === 'F5' || (event.ctrlKey && event.key === 'r')) {
+        event.preventDefault();
+        resetGrid();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [resetGrid]);
 
   const resetGrid = () => {
     setIsRunning(false);
     cancelAnimationFrame(animationFrameRef.current);
     initializeGrid();
-  };
-
-  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSpeed(Number(e.target.value));
+    // Перезапускаем игру после сброса
+    setTimeout(() => {
+      setIsRunning(true);
+    }, 100);
   };
 
   return (
@@ -271,53 +306,6 @@ export default function GameOfLife() {
         ref={canvasRef}
         className="absolute inset-0 z-0"
       />
-      
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center z-10 bg-black/70 backdrop-blur-sm p-3 rounded-lg text-white">
-        <div className="flex gap-2">
-          <button 
-            onClick={toggleRunning} 
-            className="p-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
-            aria-label={isRunning ? "Pause" : "Play"}
-          >
-            {isRunning ? <Pause size={20} /> : <Play size={20} />}
-          </button>
-          <button 
-            onClick={resetGrid}
-            className="p-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
-            aria-label="Reset"
-          >
-            <RefreshCw size={20} />
-          </button>
-          <button 
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
-            aria-label="Settings"
-          >
-            <Settings size={20} />
-          </button>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <span className="text-sm">Generation: {generation}</span>
-          
-          {showSettings && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="speed" className="text-sm whitespace-nowrap">
-                Speed: {speed}
-              </label>
-              <input
-                id="speed"
-                type="range"
-                min="1"
-                max="60"
-                value={speed}
-                onChange={handleSpeedChange}
-                className="w-24 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
