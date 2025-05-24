@@ -13,6 +13,7 @@ alwaysApply: true
 - Include only really necessary steps
 - When you make changes to a file, check them by running spec and rubocop.
 - when you create a file for a class, it should be named accordingly. For example, if the class is ExampleClass, the file should be example_class.rb. And if Parent::TestClass, it should be in the parent/test_class.rb directory.
+- после каждого изменения запускай docker-compose и смотри чтобы не было ошибок и страница отвечала
 
 You are an expert in JavaScript, Html and Css.
   
