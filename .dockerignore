@@ -1,0 +1,27 @@
+# Документация и файлы разработки
+README.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Docker файлы
+Dockerfile*
+docker-compose*
+.dockerignore
+deploy.sh
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS файлы
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+*.log
+*.tmp 
