@@ -457,6 +457,35 @@
                 // Белый текст поверх черной обводки
                 this.ctx.fillStyle = 'white';
                 this.ctx.fillText('Life.Duletsky.Ru', centerX, centerY);
+                
+                // Подсказки по клавишам под основным текстом
+                this.ctx.globalAlpha = 0.5;
+                this.ctx.font = 'bold 16px "Helvetica Neue", Arial, sans-serif';
+                
+                const shortcuts = [
+                    '1-Pentadecathlon  2-Pulsar  3-HWSS  4-Queen Bee',
+                    '5-Glider Gun  6-Beacon  7-Toad  8-Glider',
+                    'F5-Reset'
+                ];
+                
+                // Черная обводка для подсказок
+                this.ctx.strokeStyle = 'black';
+                this.ctx.lineWidth = 3;
+                
+                shortcuts.forEach((line, index) => {
+                    const y = centerY + 60 + (index * 25);
+                    this.ctx.strokeText(line, centerX, y);
+                });
+                
+                // Белый текст подсказок
+                this.ctx.fillStyle = 'white';
+                shortcuts.forEach((line, index) => {
+                    const y = centerY + 60 + (index * 25);
+                    this.ctx.fillText(line, centerX, y);
+                });
+                
+                // Возвращаем нормальную прозрачность
+                this.ctx.globalAlpha = 1.0;
             }
             
             animate(timestamp) {
@@ -499,6 +528,11 @@
                 this.stop();
                 this.initializeGrid();
                 this.render();
+                
+                // Автоматически запускаем игру после reset
+                setTimeout(() => {
+                    this.start();
+                }, 500);
             }
             
             bindEvents() {
@@ -508,6 +542,50 @@
                     if (event.key === 'F5' || (event.ctrlKey && event.key === 'r')) {
                         event.preventDefault();
                         this.reset();
+                        return;
+                    }
+                    
+                    // Создание фигур по клавишам
+                    const bestSpot = this.findBestEmptySpot();
+                    
+                    if (!bestSpot) {
+                        console.log('❌ Не найдено пустых мест для размещения фигуры');
+                        return;
+                    }
+                    
+                    switch(event.key) {
+                        case '1':
+                            this.placePattern(this.getPentadecathlon(), bestSpot.x - 6, bestSpot.y - 6);
+                            console.log(`🎯 Создан Pentadecathlon в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '2':
+                            this.placePattern(this.getPulsar(), bestSpot.x - 7, bestSpot.y - 7);
+                            console.log(`🎯 Создан Pulsar в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '3':
+                            this.placePattern(this.getHWSS(), bestSpot.x - 4, bestSpot.y - 3);
+                            console.log(`🎯 Создан HWSS в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '4':
+                            this.placePattern(this.getQueenBeeShuttle(), bestSpot.x - 12, bestSpot.y - 5);
+                            console.log(`🎯 Создан Queen Bee Shuttle в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '5':
+                            this.placePattern(this.getGosperGliderGun(), bestSpot.x - 20, bestSpot.y - 5);
+                            console.log(`🎯 Создана Gosper Glider Gun в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '6':
+                            this.placePattern(this.getBeacon(), bestSpot.x - 2, bestSpot.y - 2);
+                            console.log(`🎯 Создан Beacon в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '7':
+                            this.placePattern(this.getToad(), bestSpot.x - 2, bestSpot.y - 1);
+                            console.log(`🎯 Создан Toad в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
+                        case '8':
+                            this.placePattern(this.getGlider(), bestSpot.x - 1, bestSpot.y - 1);
+                            console.log(`🎯 Создан Glider в лучшем месте (${bestSpot.x}, ${bestSpot.y})`);
+                            break;
                     }
                 });
                 
@@ -608,6 +686,78 @@
                 }
                 
                 return emptySpots;
+            }
+            
+            // Поиск самого большого пустого места
+            findBestEmptySpot() {
+                let bestSpot = null;
+                let maxEmptyArea = 0;
+                const checkRadius = 15; // Радиус проверки вокруг точки
+                const stepSize = 5; // Шаг поиска для оптимизации
+                
+                console.log(`Ищем лучшее пустое место... Размер поля: ${this.cols}x${this.rows}`);
+                
+                for (let y = checkRadius; y < this.rows - checkRadius; y += stepSize) {
+                    for (let x = checkRadius; x < this.cols - checkRadius; x += stepSize) {
+                        let emptyCount = 0;
+                        let totalCount = 0;
+                        
+                        // Считаем пустые клетки в области
+                        for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+                            for (let dx = -checkRadius; dx <= checkRadius; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+                                    totalCount++;
+                                    if (!this.grid[ny][nx]) {
+                                        emptyCount++;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Процент пустых клеток в области
+                        const emptyRatio = emptyCount / totalCount;
+                        
+                        // Ищем область с максимальным количеством пустых клеток (минимум 70% пустых)
+                        if (emptyRatio > 0.7 && emptyCount > maxEmptyArea) {
+                            maxEmptyArea = emptyCount;
+                            bestSpot = {x, y};
+                        }
+                    }
+                }
+                
+                console.log(`Найдено лучшее место: ${bestSpot ? `(${bestSpot.x}, ${bestSpot.y})` : 'нет'}, пустых клеток: ${maxEmptyArea}`);
+                
+                // Если не нашли идеальное место, попробуем с меньшими требованиями
+                if (!bestSpot) {
+                    console.log('Поиск с пониженными требованиями...');
+                    for (let y = 10; y < this.rows - 10; y += 10) {
+                        for (let x = 10; x < this.cols - 10; x += 10) {
+                            let emptyCount = 0;
+                            
+                            // Проверяем меньшую область 10x10
+                            for (let dy = -5; dy <= 5; dy++) {
+                                for (let dx = -5; dx <= 5; dx++) {
+                                    const nx = x + dx;
+                                    const ny = y + dy;
+                                    if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+                                        if (!this.grid[ny][nx]) {
+                                            emptyCount++;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (emptyCount > 50 && emptyCount > maxEmptyArea) {
+                                maxEmptyArea = emptyCount;
+                                bestSpot = {x, y};
+                            }
+                        }
+                    }
+                }
+                
+                return bestSpot;
             }
         }
         
