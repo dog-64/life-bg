@@ -25,6 +25,8 @@
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    
+
 
     <script>
         class GameOfLife {
@@ -87,28 +89,187 @@
                     this.alphaGrid.push(alphaRow);
                 }
                 
-                // Создаем 5 групп по 100-200 клеток
-                const numGroups = 5;
-                
-                for (let group = 0; group < numGroups; group++) {
-                    const groupSize = Math.floor(Math.random() * 101) + 100; // 100-200 клеток
-                    const centerX = Math.floor(Math.random() * this.cols);
-                    const centerY = Math.floor(Math.random() * this.rows);
-                    
-                    for (let i = 0; i < groupSize; i++) {
-                        // Размещаем клетки в области 21x21 вокруг центра для большего количества клеток
-                        const offsetX = Math.floor(Math.random() * 21) - 10; // от -10 до 10
-                        const offsetY = Math.floor(Math.random() * 21) - 10; // от -10 до 10
-                        
-                        const x = (centerX + offsetX + this.cols) % this.cols;
-                        const y = (centerY + offsetY + this.rows) % this.rows;
-                        
-                        this.grid[y][x] = true;
-                        this.alphaGrid[y][x] = 1.0; // Полная непрозрачность для живых клеток
-                    }
-                }
+                // Засеваем всю площадь известными долгоиграющими паттернами
+                this.seedEntireArea();
                 
                 this.generation = 0;
+            }
+            
+            // Метод для засева всей площади известными паттернами
+            seedEntireArea() {
+                const patterns = [
+                    { name: 'pentadecathlon', cells: this.getPentadecathlon() },
+                    { name: 'pulsar', cells: this.getPulsar() },
+                    { name: 'hwss', cells: this.getHWSS() },
+                    { name: 'queenBeeShuttle', cells: this.getQueenBeeShuttle() },
+                    { name: 'gosperGliderGun', cells: this.getGosperGliderGun() },
+                    { name: 'glider', cells: this.getGlider() },
+                    { name: 'beacon', cells: this.getBeacon() },
+                    { name: 'toad', cells: this.getToad() }
+                ];
+                
+                // Размещаем паттерны случайно по всей площади
+                const gridArea = this.cols * this.rows;
+                const numPatterns = Math.floor(gridArea / 800); // Примерно один паттерн на 800 клеток
+                
+                for (let i = 0; i < numPatterns; i++) {
+                    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+                    const x = Math.floor(Math.random() * (this.cols - 20)); // Отступ от края
+                    const y = Math.floor(Math.random() * (this.rows - 20));
+                    
+                    this.placePattern(pattern.cells, x, y);
+                }
+                
+                // Добавляем случайный "шум" для разнообразия
+                this.addRandomNoise(0.02); // 2% случайных клеток
+            }
+            
+            // Размещение паттерна в сетке
+            placePattern(pattern, startX, startY) {
+                for (const cell of pattern) {
+                    const x = (startX + cell.x + this.cols) % this.cols;
+                    const y = (startY + cell.y + this.rows) % this.rows;
+                    
+                    if (x >= 0 && x < this.cols && y >= 0 && y < this.rows) {
+                        this.grid[y][x] = true;
+                        this.alphaGrid[y][x] = 1.0;
+                    }
+                }
+            }
+            
+            // Добавление случайного "шума"
+            addRandomNoise(density) {
+                const totalCells = this.cols * this.rows;
+                const noiseCells = Math.floor(totalCells * density);
+                
+                for (let i = 0; i < noiseCells; i++) {
+                    const x = Math.floor(Math.random() * this.cols);
+                    const y = Math.floor(Math.random() * this.rows);
+                    
+                    if (Math.random() > 0.5) { // 50% шанс на живую клетку
+                        this.grid[y][x] = true;
+                        this.alphaGrid[y][x] = 1.0;
+                    }
+                }
+            }
+            
+            // Паттерны Conway's Life
+            
+            // Pentadecathlon - осциллятор период 15
+            getPentadecathlon() {
+                return [
+                    {x: 4, y: 1}, {x: 5, y: 1},
+                    {x: 3, y: 2}, {x: 6, y: 2},
+                    {x: 3, y: 3}, {x: 6, y: 3},
+                    {x: 3, y: 4}, {x: 6, y: 4},
+                    {x: 4, y: 5}, {x: 5, y: 5},
+                    {x: 2, y: 6}, {x: 7, y: 6},
+                    {x: 4, y: 7}, {x: 5, y: 7},
+                    {x: 3, y: 8}, {x: 6, y: 8},
+                    {x: 3, y: 9}, {x: 6, y: 9},
+                    {x: 3, y: 10}, {x: 6, y: 10},
+                    {x: 4, y: 11}, {x: 5, y: 11}
+                ];
+            }
+            
+            // Pulsar - осциллятор период 3
+            getPulsar() {
+                return [
+                    // Верхняя часть
+                    {x: 2, y: 0}, {x: 3, y: 0}, {x: 4, y: 0}, {x: 8, y: 0}, {x: 9, y: 0}, {x: 10, y: 0},
+                    {x: 0, y: 2}, {x: 5, y: 2}, {x: 7, y: 2}, {x: 12, y: 2},
+                    {x: 0, y: 3}, {x: 5, y: 3}, {x: 7, y: 3}, {x: 12, y: 3},
+                    {x: 0, y: 4}, {x: 5, y: 4}, {x: 7, y: 4}, {x: 12, y: 4},
+                    {x: 2, y: 5}, {x: 3, y: 5}, {x: 4, y: 5}, {x: 8, y: 5}, {x: 9, y: 5}, {x: 10, y: 5},
+                    // Нижняя часть
+                    {x: 2, y: 7}, {x: 3, y: 7}, {x: 4, y: 7}, {x: 8, y: 7}, {x: 9, y: 7}, {x: 10, y: 7},
+                    {x: 0, y: 8}, {x: 5, y: 8}, {x: 7, y: 8}, {x: 12, y: 8},
+                    {x: 0, y: 9}, {x: 5, y: 9}, {x: 7, y: 9}, {x: 12, y: 9},
+                    {x: 0, y: 10}, {x: 5, y: 10}, {x: 7, y: 10}, {x: 12, y: 10},
+                    {x: 2, y: 12}, {x: 3, y: 12}, {x: 4, y: 12}, {x: 8, y: 12}, {x: 9, y: 12}, {x: 10, y: 12}
+                ];
+            }
+            
+            // HWSS - Heavy-weight spaceship
+            getHWSS() {
+                return [
+                    {x: 0, y: 0}, {x: 1, y: 0}, {x: 4, y: 0}, {x: 5, y: 0},
+                    {x: 6, y: 1},
+                    {x: 6, y: 2},
+                    {x: 0, y: 3}, {x: 5, y: 3}, {x: 6, y: 3},
+                    {x: 1, y: 4}, {x: 2, y: 4}, {x: 3, y: 4}, {x: 4, y: 4}, {x: 5, y: 4}, {x: 6, y: 4}
+                ];
+            }
+            
+            // Queen Bee Shuttle
+            getQueenBeeShuttle() {
+                return [
+                    {x: 0, y: 0}, {x: 1, y: 0},
+                    {x: 0, y: 1}, {x: 2, y: 1},
+                    {x: 2, y: 2},
+                    {x: 4, y: 3}, {x: 5, y: 3},
+                    {x: 4, y: 4}, {x: 6, y: 4},
+                    {x: 6, y: 5},
+                    {x: 8, y: 6}, {x: 9, y: 6},
+                    {x: 8, y: 7}, {x: 10, y: 7},
+                    {x: 10, y: 8},
+                    {x: 18, y: 7}, {x: 19, y: 7},
+                    {x: 18, y: 8}, {x: 20, y: 8},
+                    {x: 20, y: 9}
+                ];
+            }
+            
+            // Gosper Glider Gun (упрощенная версия)
+            getGosperGliderGun() {
+                return [
+                    // Левый блок
+                    {x: 1, y: 5}, {x: 2, y: 5},
+                    {x: 1, y: 6}, {x: 2, y: 6},
+                    // Левый осциллятор
+                    {x: 11, y: 5}, {x: 11, y: 6}, {x: 11, y: 7},
+                    {x: 12, y: 4}, {x: 12, y: 8},
+                    {x: 13, y: 3}, {x: 13, y: 9},
+                    {x: 14, y: 3}, {x: 14, y: 9},
+                    {x: 15, y: 6},
+                    {x: 16, y: 4}, {x: 16, y: 8},
+                    {x: 17, y: 5}, {x: 17, y: 6}, {x: 17, y: 7},
+                    {x: 18, y: 6},
+                    // Правый осциллятор
+                    {x: 21, y: 3}, {x: 21, y: 4}, {x: 21, y: 5},
+                    {x: 22, y: 3}, {x: 22, y: 4}, {x: 22, y: 5},
+                    {x: 23, y: 2}, {x: 23, y: 6},
+                    {x: 25, y: 1}, {x: 25, y: 2}, {x: 25, y: 6}, {x: 25, y: 7},
+                    // Правый блок
+                    {x: 35, y: 3}, {x: 36, y: 3},
+                    {x: 35, y: 4}, {x: 36, y: 4}
+                ];
+            }
+            
+            // Глайдер
+            getGlider() {
+                return [
+                    {x: 0, y: 1},
+                    {x: 1, y: 2},
+                    {x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}
+                ];
+            }
+            
+            // Beacon - осциллятор период 2
+            getBeacon() {
+                return [
+                    {x: 0, y: 0}, {x: 1, y: 0},
+                    {x: 0, y: 1},
+                    {x: 3, y: 2},
+                    {x: 2, y: 3}, {x: 3, y: 3}
+                ];
+            }
+            
+            // Toad - осциллятор период 2
+            getToad() {
+                return [
+                    {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0},
+                    {x: 0, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}
+                ];
             }
             
             countNeighbors(x, y) {
@@ -175,7 +336,7 @@
                 this.ctx.fillStyle = '#1a1a1a';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 
-                // Рисуем клетки с альфа-каналом для плавных переходов
+                // Рисуем круглые клетки с альфа-каналом для плавных переходов
                 for (let y = 0; y < this.rows; y++) {
                     for (let x = 0; x < this.cols; x++) {
                         const alpha = this.alphaGrid[y][x];
@@ -183,12 +344,15 @@
                         if (alpha > 0) {
                             // Используем rgba для прозрачности
                             this.ctx.fillStyle = `rgba(34, 197, 94, ${alpha})`;
-                            this.ctx.fillRect(
-                                x * (this.cellSize + this.cellGap),
-                                y * (this.cellSize + this.cellGap),
-                                this.cellSize,
-                                this.cellSize
-                            );
+                            
+                            // Рисуем круглые точки вместо квадратов
+                            const centerX = x * (this.cellSize + this.cellGap) + this.cellSize / 2;
+                            const centerY = y * (this.cellSize + this.cellGap) + this.cellSize / 2;
+                            const radius = this.cellSize / 2;
+                            
+                            this.ctx.beginPath();
+                            this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                            this.ctx.fill();
                         }
                     }
                 }
@@ -197,18 +361,20 @@
                 const centerX = window.innerWidth / 2;
                 const centerY = window.innerHeight / 2;
                 
+                // Нормальная прозрачность
                 this.ctx.globalAlpha = 0.7;
                 
                 // Черная обводка для контраста с клетками
                 this.ctx.strokeStyle = 'black';
-                this.ctx.lineWidth = 10;
-                this.ctx.font = 'bold 80px "Helvetica Neue", Arial, sans-serif';
+                this.ctx.lineWidth = 8;
+                this.ctx.font = 'bold 72px "Helvetica Neue", Arial, sans-serif';
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
-                this.ctx.strokeText('R300.39-Pc.Ru', centerX, centerY);
+                this.ctx.strokeText('Life.Duletsky.Ru', centerX, centerY);
                 
+                // Белый текст поверх черной обводки
                 this.ctx.fillStyle = 'white';
-                this.ctx.fillText('Life.39-Pc.ru', centerX, centerY);
+                this.ctx.fillText('Life.Duletsky.Ru', centerX, centerY);
             }
             
             animate(timestamp) {
@@ -251,10 +417,6 @@
                 this.stop();
                 this.initializeGrid();
                 this.render();
-                // Перезапускаем игру после сброса
-                setTimeout(() => {
-                    this.start();
-                }, 100);
             }
             
             bindEvents() {
